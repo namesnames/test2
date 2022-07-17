@@ -32,7 +32,5 @@ type: commit message
    <tr>
       <td align="center"><a href="https://github.com/namesnames"><img src="https://avatars.githubusercontent.com/u/103047410?v=4" width="100px;" alt=""/><br /><sub><b>namesnames<br/>(Hanju Lee)</b></sub></a></td>
       <td align="center"><a href="https://github.com/msung99"><img src="https://avatars.githubusercontent.com/u/88240193?v=4" width="100px;" alt=""/><br /><sub><b>msung99<br/>(Minsung Lee)</b></sub></a></td>
-     <td align="center"><a href="https://github.com/devHudi"><img src="https://avatars.githubusercontent.com/u/11745691?v=4" width="100px;" alt=""/><br /><sub><b>devHudi<br/>(Donghyun Cho)</b></sub></a></td>
-     <td align="center"><a href="https://github.com/pcpark98"><img src="https://avatars.githubusercontent.com/u/34507976?v=4" width="100px;" alt=""/><br /><sub><b>pcpark98<br/>(SangJun Park)</b></sub></a></td>
    </tr>
 </table>
