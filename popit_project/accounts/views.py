@@ -6,6 +6,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import status
 from django.contrib.auth import authenticate
 #from api.mixins import PublicApiMixin
+from django.contrib.auth import authenticate, login, logout
+from .models import Token
 
 # 회원가입
 class RegisterAPIView(APIView):
@@ -35,15 +37,21 @@ class RegisterAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # 로그인
+
+ # refresh token 의 유효기간은 2주, access token 의 유효기간은 1시간이라 하자.
+ # 사용자는 api 요청을 신나게 하다가 1시간이 지나게 되면, 가지고 있는 access token 은 만료가 된다.
+ # 그러면 refresh token 의 유효기간 전까지는 access token 을 새롭게 발급받을 수 있다.
+
 class AuthView(APIView):
     
     def post(self, request):
         user = authenticate(login_id=request.data.get("login_id"), password=request.data.get("password"))
         if user is not None:
             serializer = UserSerializer(user)
+            #token = Token.objects.create(user = user.id, token = access_token)
             token = TokenObtainPairSerializer.get_token(user)
             refresh_token = str(token)
-            access_token = str(token.access_token)
+            access_token = str(token.access_token)  
             res = Response(
                 {
                     "user": serializer.data,
@@ -63,13 +71,12 @@ class AuthView(APIView):
 #@method_decorator(csrf_protect, name='dispatch')
 class logout(APIView):
     def post(self, request):
-        print(request.data)
-        print(request.data.get("login_id"))
+        user = request.user
+        serializer = UserSerializer(user)
         """
         클라이언트 refreshtoken 쿠키를 삭제함으로 로그아웃처리
         """
-        response = Response({
-            "message": "Logout success"
-            }, status=status.HTTP_202_ACCEPTED)
-        response.delete_cookie('refreshtoken')
+        response = Response({"message": "Logout success"}, status=status.HTTP_202_ACCEPTED)
+        response.delete_cookie('refresh_token')
+        #response.delete_cookie('access_token')
         return response
