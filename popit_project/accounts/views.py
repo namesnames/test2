@@ -5,7 +5,9 @@ from .serializer import RegisterSerializer,UserSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import status
 from django.contrib.auth import authenticate
+#from api.mixins import PublicApiMixin
 
+# 회원가입
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -31,13 +33,12 @@ class RegisterAPIView(APIView):
             res.set_cookie("refresh", refresh_token, httponly=True)
             return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+# 로그인
 class AuthView(APIView):
     
     def post(self, request):
-        user = authenticate(
-            login_id=request.data.get("login_id"), password=request.data.get("password")
-        )
+        user = authenticate(login_id=request.data.get("login_id"), password=request.data.get("password"))
         if user is not None:
             serializer = UserSerializer(user)
             token = TokenObtainPairSerializer.get_token(user)
@@ -48,12 +49,27 @@ class AuthView(APIView):
                     "user": serializer.data,
                     "message": "login success",
                     "token": {
-                        "access": access_token,
-                        "refresh": refresh_token,
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
                     },
                 },
                 status=status.HTTP_200_OK,
             )
             return res
         else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)        
+            return Response({"error" : "아이디 또는 비밀번호가 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+# 로그아웃
+#@method_decorator(csrf_protect, name='dispatch')
+class logout(APIView):
+    def post(self, request):
+        print(request.data)
+        print(request.data.get("login_id"))
+        """
+        클라이언트 refreshtoken 쿠키를 삭제함으로 로그아웃처리
+        """
+        response = Response({
+            "message": "Logout success"
+            }, status=status.HTTP_202_ACCEPTED)
+        response.delete_cookie('refreshtoken')
+        return response

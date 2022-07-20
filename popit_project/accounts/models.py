@@ -73,7 +73,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=30, unique=True, null=False, blank=False)
     password = models.CharField(default = "비밀번호 입력", max_length = 12)
     re_password = models.CharField(default = "비밀번호 재확인", max_length = 12)
-    promise = models.BooleanField(default = False) # 약관동의 
     alarm = models.BooleanField(default = True) # 알람 디폴트 값 = ON
 
     '''
