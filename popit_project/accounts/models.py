@@ -74,6 +74,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(default = "비밀번호 입력", max_length = 12)
     re_password = models.CharField(default = "비밀번호 재확인", max_length = 12)
     alarm = models.BooleanField(default = True) # 알람 디폴트 값 = ON
+    is_staff = models.BooleanField(default=False)
 
     '''
     is_superuser = models.BooleanField(default=False)
@@ -90,3 +91,4 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'user'
+
