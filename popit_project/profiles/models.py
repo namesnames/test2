@@ -36,16 +36,6 @@ class Pop(models.Model):
 
     def __str__(self):
         return self.contents
-
-
-# 댓글
-class Comment(models.Model):
-    comments = models.TextField(max_length = 200)
-    foregin_pop = models.ForeignKey(Pop, null = True, on_delete = models.CASCADE) # 어느 팝에 종속한 댓글인지
-    # on_delete => 댓글달린 게시글이 삭제되면 참조 객체(팝) 도 같이 삭제
-
-    def __str__(self):
-        return self.comments
-
+        
 
 
