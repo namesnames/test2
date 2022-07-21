@@ -16,11 +16,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounts import views as accounts_views
+from profiles import views as profiles_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("signup", accounts_views.RegisterAPIView.as_view()),
     path("login", accounts_views.AuthView.as_view()), 
     path("logout", accounts_views.logout.as_view()),
-    path('profile', accounts_views.logout.as_view()),
+    path('profile/<int:user_id>', profiles_views.main_profile, name = 'main_profile'),
+    path('pop_pressed/<int:pop_id>', profiles_views.pop_pressed, name = 'pop_pressed'),
+    path('follow/<int:user_id>', profiles_views.follow, name = 'follow'),
 ]
