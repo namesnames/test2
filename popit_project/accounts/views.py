@@ -7,7 +7,7 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 #from api.mixins import PublicApiMixin
 from django.contrib.auth import authenticate, login, logout
-from .models import Token
+#from .models import Token
 
 # 회원가입
 class RegisterAPIView(APIView):
@@ -27,6 +27,7 @@ class RegisterAPIView(APIView):
                         "access": access_token,
                         "refresh": refresh_token,
                     },
+
                 },
                 status=status.HTTP_200_OK,
             )
@@ -43,7 +44,6 @@ class RegisterAPIView(APIView):
  # 그러면 refresh token 의 유효기간 전까지는 access token 을 새롭게 발급받을 수 있다.
 
 class AuthView(APIView):
-    
     def post(self, request):
         user = authenticate(login_id=request.data.get("login_id"), password=request.data.get("password"))
         if user is not None:

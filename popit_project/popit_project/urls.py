@@ -16,11 +16,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounts import views as accounts_views
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("signup", accounts_views.RegisterAPIView.as_view()),
     path("login", accounts_views.AuthView.as_view()), 
     path("logout", accounts_views.logout.as_view()),
+    path('refresh', TokenRefreshView.as_view()),   # 토큰 재발급하기 => access_token 은 5분만 지나면 만료되기 때문에 refresh_token 을 가지고 access_token 을 재발급해야 한다. 이는 따로 코드를 구현하지 않고 simplejwt 에 내장된 기능으로 구현했다.
     path('profile', accounts_views.logout.as_view()),
 ]
