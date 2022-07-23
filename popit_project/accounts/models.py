@@ -76,8 +76,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     re_password = models.CharField(default = "비밀번호 재확인", max_length = 12)
     alarm = models.BooleanField(default = True) # 알람 디폴트 값 = ON
     is_staff = models.BooleanField(default=False)
-    followings = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name =  'followings') # 팔로잉
-    followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name = 'followers') # 팔로워
+
+#     # followings = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name =  'followings') # 팔로잉
+#     # followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name = 'followers') # 팔로워
+# =======
+#     followings = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name =  'followings') # 팔로잉
+#     followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name = 'followers') # 팔로워
+
 
     # ManyToManyField : 다대다 관계. ex) 피자-토핑 관계
 

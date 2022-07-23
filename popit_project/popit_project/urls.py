@@ -18,12 +18,29 @@ from django.urls import path
 from accounts import views as accounts_views
 from profiles import views as profiles_views
 
+from rest_framework_simplejwt.views import TokenRefreshView
+# from profiles import views as profiles_views
+from add_pop import views as add_pop_views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("signup", accounts_views.RegisterAPIView.as_view()),
     path("login", accounts_views.AuthView.as_view()), 
     path("logout", accounts_views.logout.as_view()),
-    path('profile/<int:user_id>', profiles_views.main_profile, name = 'main_profile'),
-    path('pop_pressed/<int:pop_id>', profiles_views.pop_pressed, name = 'pop_pressed'),
-    path('follow/<int:user_id>', profiles_views.follow, name = 'follow'),
+    # path('profile/<int:user_id>', profiles_views.main_profile, name = 'main_profile'),
+    # path('pop_pressed/<int:pop_id>', profiles_views.pop_pressed, name = 'pop_pressed'),
+    # path('follow/<int:user_id>', profiles_views.follow, name = 'follow'),
+    path('addChemipop',add_pop_views.ChemiPopList.as_view()),
+    path('addPythonpop',add_pop_views.PythonPopList.as_view()),
+    path('addDjangopop',add_pop_views.DjangoPopList.as_view()),
+    path('addEnginMathpop',add_pop_views.EnginMathPopList.as_view()),
+    path('addTOEICpop',add_pop_views.TOEICPopList.as_view()),
+    
+    path('Chemipop/<int:pk>',add_pop_views.ChemiPopDetail.as_view()),  
+    path('Pythonpop/<int:pk>',add_pop_views.PythonPopDetail.as_view()),  
+    path('Djangopop/<int:pk>',add_pop_views.DjangoPopDetail.as_view()),  
+    path('EnginMathpop/<int:pk>',add_pop_views.EnginMathPopDetail.as_view()),  
+    path('TOEIC/<int:pk>',add_pop_views.TOEICPopDetail.as_view()),  
+    
+    path('Chemipoplike/<int:pk>',add_pop_views.ChemiPopDetail.as_view()),
 ]
