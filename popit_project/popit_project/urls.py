@@ -16,9 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounts import views as accounts_views
+from profiles import views as profiles_views
 
 from rest_framework_simplejwt.views import TokenRefreshView
-from profiles import views as profiles_views
+# from profiles import views as profiles_views
 from add_pop import views as add_pop_views
 
 urlpatterns = [
