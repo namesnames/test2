@@ -17,15 +17,19 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         #fields = '__all__'
-        fields = ('id', 'login_id', 'email', 'password', 're_password', 'alarm')
+        fields = ('id','profile_image','login_id','nickname','email', 'password', 're_password', 'alarm')
 
     def create(self, validated_data):
         login_id = validated_data.get('login_id')
         email = validated_data.get('email')
         password = validated_data.get('password')
+        nickname = validated_data.get('nickname')
+        profile_image = validated_data.get('profile_image')
         user = User(
             login_id=login_id,
-            email=email
+            email=email,
+            nickname = nickname,
+            profile_image = profile_image
         )
         user.set_password(password)
         user.save()
@@ -35,3 +39,4 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'    
+        

@@ -2,37 +2,19 @@ from dataclasses import fields
 from unicodedata import category
 from rest_framework import serializers
 from .models import *
+from .models import Pop, Category, Comment
 
-# from .models import Pop
-# from .models import Profile,Pop, Category, Comment
+# class ProfileSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Profile
+#         fields = '__all__'
+    
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'
         #read_only_fields = ('id', )
-    '''
-    def to_representation(self, obj):
-        return{
-            'id' : obj.id,
-            'comments' : obj.comments,
-            'foregin_pop' : obj.foregin_pop,
-        }
-    '''
-    
-    '''
-    def create(self, validated_data):
-        comments = validated_data.get('comments')
-        foregin_pop = validated_data.get('foregin_pop')
-        comment_obj = Comment(comments = comments, foregin_pop = foregin_pop)
-        comment_obj.save()
-        return comment_obj
-    '''
-
-'''
- category_name = models.CharField(max_length = 100)
-    category_image = models.ImageField(blank = True, null = True)
-'''
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,34 +42,34 @@ class PopSerializer(serializers.ModelSerializer):
         fields = '__all__'
         #read_only_fields = ('id', )
     
-    def to_representation(self, obj):
-        return{
-            'id' : obj.id,
-            'contents' : obj.contents,
-            'likes_count' : obj.likes_count,
-            'comments_count' : obj.comments_count,
-            'writer' : obj.writer,
-            #'foregin_category' : obj.foregin_category,
-        }
-
-    #def to_representation(self, instance):
-    #    return super().to_representation(instance)
+class FollowUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
+        extra_kwargs = {
+            'password' : {'write_only' : True},
+        }  
 
 
+class CategoryListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User #json으로 받을 때 들어온 필드들이 Category(내가만든)모델의 필드와 일치해야하나?
+        fields = '__all__'
+        extra_kwargs = {
+            'password' : {'write_only' : True},
+            'last_login' : {'write_only' : True},
+            'is_superuser' : {'write_only' : True},
+            'login_id' : {'write_only' : True},
+            'email' : {'write_only' : True},
+            're_password' : {'write_only' : True},
+            'alarm' : {'write_only' : True},
+            'nickname' : {'write_only' : True},
+            'profile_image' : {'write_only' : True},
+            'groups' : {'write_only' : True},
+            'user_permissions' : {'write_only' : True},
+            'followers' : {'write_only' : True},
+            # 'id' : {'write_only' : True},
+            'is_staff' : {'write_only' : True},
+            
+        }  
 
-
-
-'''
-def create(self, validated_data):
-        print(validated_data)
-        print(validated_data.get('contents'))
-        #print(contents)
-        contents = validated_data.get('contents')
-        likes_count = validated_data.get('likes_count')
-        comments_count = validated_data.get('comments_count')
-        writer = validated_data.get('writer')
-        foregin_category = validated_data.get('foregin_category')
-        pop_obj = Pop(contents = contents, likes_count= likes_count, comments_count = comments_count, writer = writer, foregin_category = foregin_category)
-        pop_obj.save()
-        return pop_obj
-'''

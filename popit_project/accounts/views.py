@@ -30,6 +30,7 @@ class RegisterAPIView(APIView):
 
                 },
                 status=status.HTTP_200_OK,
+        
             )
             #쿠키에 넣어주기...아직 어떤식으로 해야될지 모르겠는데 이렇게 설정만 우선 해주었다. 
             res.set_cookie("access", access_token, httponly=True) # 유저가 로그인에 성공했을때, 해당 유저를 로그인 기간동안 인증하는 토큰을 cookie에 저장해야 할 경우, HttpResponse 또는 JsonResponse 에 장고에서 제공하는 set_cookie 메소드를 사용하여 토큰을 발행할 수 있다.
@@ -63,6 +64,7 @@ class AuthView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+            print(request.user)
             return res
         else:
             return Response({"error" : "아이디 또는 비밀번호가 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)

@@ -1,3 +1,4 @@
+from argparse import _MutuallyExclusiveGroup
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
@@ -68,6 +69,9 @@ class User(AbstractUser):
         )
 '''
 
+class Category(models.Model):
+    category_name = models.CharField(null = True, max_length = 100)
+    category_image = models.ImageField(blank = True, null = True)
 
 class User(AbstractBaseUser, PermissionsMixin):
     login_id = models.CharField(max_length=30, unique=True, null=False, blank=False)
@@ -76,8 +80,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     re_password = models.CharField(default = "비밀번호 재확인", max_length = 12)
     alarm = models.BooleanField(default = True) # 알람 디폴트 값 = ON
     is_staff = models.BooleanField(default=False)
-    followings = models.ManyToManyField(settings.AUTH_USER_MODEL) # 팔로잉
-    #followers = models.ManyToManyField(settings.AUTH_USER_MODEL) # 팔로워
+    followers = models.ManyToManyField('self',symmetrical=False,related_name='followings')
+    nickname = models.CharField(max_length = 40, blank = True) 
+    profile_image = models.ImageField(blank = True, null = True, upload_to = 'uploads')
+    category_list = models.ManyToManyField(Category,default=True)
+    
+    # followings = models.ManyToManyField("self",symmetrical=False,related_name='followers') # 팔로잉
+    # followers = models.ManyToManyField("self",related_name=followings) # 팔로워
 
 #     # followings = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name =  'followings') # 팔로잉
 #     # followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name = 'followers') # 팔로워
@@ -103,4 +112,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'user'
-

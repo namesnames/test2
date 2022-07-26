@@ -1,18 +1,29 @@
 import base64
+import re
+from django.dispatch import receiver
 from django.http import JsonResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, render
 from django.urls import is_valid_path
+from requests import delete
+
+
+
 #from requests import Response, request
-from .models import Pop, Category, Comment
-from accounts.models import User
+from .models import Pop, Comment
+from accounts.models import User,Category
 from rest_framework import generics
-from .serializers import PopSerializer, CommentSerializer, CategorySerializer
+from .serializers import FollowUserSerializer, PopSerializer, CommentSerializer, CategoryListSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
 # Create your views here.
 from rest_framework import status
 import json
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework import status
+from accounts.serializer import UserSerializer
+
 
 # 전체 팝 리스트 조회 / 팝 생성하기
 @api_view(['GET', 'POST'])
@@ -28,19 +39,59 @@ def pop_list_all(request):
             serializer.save() # DB 에 저장
             return Response(serializer.data, status = status.HTTP_200_OK) # 저장성공을 알림
 
-# 특정 유저에 대한 팝 리스트 조회, 특정 유저에 대한 팝 생성하기
+
+# 특정 유저에 대한 팝 리스트 조회
+@method_decorator(csrf_exempt, name = 'dispatch')
+@api_view(['GET'])
 def pop_list_user(request, user_id):
-    if request.method ==  'GET':
-        my_user = get_object_or_404(User, pk = user_id)
-        pop = get_list_or_404(Pop, writer = my_user)
+    my_user = get_object_or_404(User, pk = user_id)
+    if request.method ==  'GET':  # 특정 유저에 종속해있는 팝 리스트를 출력
+        pop = get_list_or_404(Pop, writer = my_user)  # get_list 로 받아올것 (특정 유저에 종속한 팝이 여러개일수 있기때문)
         serializer = PopSerializer(pop, many = True)
-        return Response(serializer.data)
-    
-    elif request.method == 'POST':
+        return Response(serializer.data, status = status.HTTP_200_OK)
+
+
+
+# 특정 유저에 종속하며, 특정 카테고리에 속하는 팝 생성하기    
+@api_view(['POST'])
+def create_pop_user_category(request, user_id, category_id):
+    if request.method == 'POST':
+        my_user = get_object_or_404(User, pk = user_id)
+        my_category = get_object_or_404(Category, pk = category_id)
         serializer = PopSerializer(data = request.data)
         if serializer.is_valid(raise_exception = True):
-            serializer.save()
+            serializer.save(contents = request.data['contents'], foregin_category = my_category, writer = my_user)
             return Response(serializer.data, status = status.HTTP_200_OK)
+        
+@api_view(['POST'])
+def create_pop_user_category(request,category_id):
+    if request.method == 'POST':
+        my_user = get_object_or_404(User, pk = request.user.pk)
+        my_category = get_object_or_404(Category, pk = category_id)
+        serializer = PopSerializer(data = request.data)
+        if serializer.is_valid(raise_exception = True):
+            serializer.save(contents = request.data['contents'], foregin_category = my_category, writer = my_user)
+            return Response(serializer.data, status = status.HTTP_200_OK)
+
+
+# 특정 유저에 대한 팝들 중에서 특정 팝을 수정 및 삭제
+# => request.User == 현재 로그인 되어있는 유저랑 같을때 수정 및 삭제 가능하도록 구현
+@api_view(['PUT', 'DELETE'])
+def pop_list_user2(request, user_id, pop_id):
+    my_user = get_object_or_404(User, pk = user_id) 
+    pop = get_object_or_404(Pop, writer = my_user, pk = pop_id)  
+    if request.method == 'PUT':  # 특정 유저의 특정 팝 수정하기
+        serializer = PopSerializer(pop, data = request.data) 
+        if serializer.is_valid(raise_exception = True): # 수정에 실패시 에러 발생시키기
+            serializer.save()
+            return Response(serializer.data)
+
+    elif request.method == 'DELETE':
+        pop.delete()
+        data = {
+            'delete' : f'{pop_id}번째 팝이 삭제되었습니다.'
+        }
+        return Response(data, status = status.HTTP_204_NO_CONTENT)
 
 
 
@@ -90,7 +141,7 @@ def comment_create(request, pop_id):
             return Response(serializer.data , status = status.HTTP_201_CREATED)
 
 
-# 특정 팝의 댓글 조회, 삭제, 수정하기
+# 특정 댓글 조회, 삭제, 수정하기
 @api_view(['GET', 'DELETE', 'PUT'])
 def comment_detail(request, comment_id):
     comment = get_object_or_404(Comment, pk = comment_id)
@@ -111,140 +162,152 @@ def comment_detail(request, comment_id):
             serializer.save()
             return Response(serializer.data, status = status.HTTP_202_ACCEPTED)
 
-'''
-# 댓글 리스트 주루륵 나오게
-class CommentList(generics.ListCreateAPIView):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
-    lookup_field = 'id'
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+# 특정 유저에 대한 프로필을 띄우기, 생성하기, 수정하기
+# @api_view(['GET', 'POST','PUT'])
+# def user_profile(request, user_id):
+#     my_user = get_object_or_404(User, pk = user_id)
 
-# 댓글 수정/삭제
-class CommentUpdateDelete(generics.RetrieveUpdateAPIView):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
-    lookup_field = 'id'
-    #lookup_field = 'foregin_pop'
+#     if request.method == 'GET': # 프로필 띄우기        
+#         profile = get_object_or_404(Profile, user = my_user)
+#         serializer = ProfileSerializer(profile)
+#         return Response(serializer.data, status = status.HTTP_200_OK)
     
+#     elif request.method == 'POST': # 프로필 생성하기
+#         serializer = ProfileSerializer(data = request.data, user = my_user)
+#         print(serializer)
+#         if serializer.is_valid(raise_exception = True):
+#             serializer.save(user = my_user, nickname = request.data['nickname'], profile_image = request.data['profile_image'])
+#             return Response(serializer.data, status = status.HTTP_201_CREATED)
 
-    # 작성자가 동일할때만 댓글 업데이트 가능
-    def update(self, request, *args, **kwargs):
-        if self.get_object().writer == request.data.get('writer'):
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
+#     elif request.method == 'PUT': # 프로필 수정하기
+#         # my_user = request.user
+#         profile = get_object_or_404(Profile, user = my_user)
+#         serializer = ProfileSerializer(profile, data = request.data)
+#         if serializer.is_valid(raise_exception = True):
+#             serializer.save()
+#             return Response(serializer.data, status = status.HTTP_200_OK)
+
+'''
+    elif request.method == "PUT" :  # 댓글 수정
+        serializer = CommentSerializer(instance = comment, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data, status = status.HTTP_202_ACCEPTED)
+'''
+
+'''
+elif request.method == 'PUT':  # 특정 팝 수정하기 
+        serializer = PopSerializer(pop, data = request.data)
+        if serializer.is_valid(raise_exception = True): # 수정에 실패시 에러발생시키기
+            serializer.save()
             return Response(serializer.data)
-        else:
-            return Response({"error" : "Invalid Writer"}, status = 403)
+'''
 
-    # 작성자가 동일할때만 댓글 삭제 가능
-    def delete(self, request, *args, **kwargs):
-        if self.get_object().writer == request.data.get("writer"):
-            return self.destroy(request, *args, **kwargs)
+class ProfileUpdateAPI(generics.UpdateAPIView):
+    # queryset = Profile.objects.all()
+    # serializer_class = ProfileSerializer
+    lookup_field = 'user_id'
+    
+    '''
+    def put(self, request, *args, **kwargs):
+        #data = request.data
+        user_id = self.kwargs['user_id']
+        qs = Profile.objects.filter(user = user_id)
+        print(qs)
+        serializer = ProfileSerializer(qs, data = request.data)
+        print("=================")
+        print(serializer)
+        print("--------------")
+        #print(serializer.data)
+        if serializer.is_valid():
+            print("weijiowerjwoierjo")
+            return Response(serializer.data)
+        print("wwwwwwwwwwwwwwwwwwwwwwwwwww")
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+        '''
+
+# '''
+# elif request.method == 'PUT':  # 특정 팝 수정하기 
+#         serializer = PopSerializer(pop, data = request.data)
+#         if serializer.is_valid(raise_exception = True): # 수정에 실패시 에러발생시키기
+#             serializer.save()
+#             return Response(serializer.data)
+# '''
+
+@api_view(['POST'])
+def follow(request,user_id):
+    # if request.method == "POST": #팔로우하기
+        if request.user.is_authenticated: #로그인해야 가능하도록
+            person = get_object_or_404(User,pk=user_id)
+            # me = get_object_or_404(User,pk=request.user.pk)
+            if person != request.user: #자기자신 팔로우금지
+                if person.followers.filter(pk=request.user.pk).exists():
+                    person.followers.remove(request.user) #이미팔로우 상태면 언팔
+                    # me.followings.remove(person) #나의 팔로잉목록에도 상대방 제거
+                else:
+                    person.followers.add(request.user) #아니면 팔로우
+                    # me.followings.add(person) #나의 팔로잉목록에도 상대방 추가
+            return Response(status = 200)
+        return Response(status = 200)  #상대방의 팔로우목록에 나를 추가하는 방법
+
+@api_view(['GET'])
+def view_followings(request): #나를 팔로우 한 사람들 보기 #user_id에는 본인의 pk값 
+    if request.method == "GET":
+        # me = get_object_or_404(User,pk=request.user.id)
+        me = User.objects.filter(followers = request.user)
+        # following_users = User.objects.filter(pk = request.user.id)
+        #나의 팔로잉목록있는 유저들 모두 불러오기
+        # serializer = UserSerializer(me,many=True)
+        serializer = FollowUserSerializer(me,many=True)
+        return Response(serializer.data, status = 200)
+    #그냥 me.followins 보여줘도 될듯
+
+
+@api_view(['GET'])
+def view_followers(request):  #내가 팔로우 한 사람들 보기
+    if request.method == "GET":
+        all_users = User.objects.filter(followings=request.user)
+        #팔로워목록에 내가 있는 유저객체들 모두 불러오기
         
-        elif self.get_object().writer == "":
-            return self.destory({"401" : "Unauthorized"}, status = 401)
+        serializer = UserSerializer(all_users,many=True)  
+        return Response(serializer.data, status = 200)
+    # followers 변수가 다른유저객체들을 가리키고 
 
-        else:
-            return Response({"403" : "Unauthorized"}, status = 403)
+#사용자가 카테고리들 선택하고 완료버튼 눌렀을때 json으로 넘어온 데이터 처리 
+@api_view(['POST'])
+def set_category(request):
+    user = get_object_or_404(User,pk=request.user.pk) #현재 사용자 객체 불러오기
+    for data in request.data:  #리스트 형태로 온 json데이터 순회
+        category_id = data['category_id']
+        selected_category = get_object_or_404(Category,pk=category_id)
+        user.category_list.add(selected_category.pk)  #현재 사용자 객체의 category_list에 카테고리객체의 id값 추가
 
+    return Response(status=200)
 
-# 카테고리 리스트가 주루륵 나오도록
-class CategoryList(generics.ListCreateAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    lookup_field = 'id'
+#사용자가 카테고리 뭐 골랐는지 보여주기
+@api_view(['GET'])
+def view_category(request):
+    user = get_object_or_404(User,pk=request.user.pk)
+    serializer = CategoryListSerializer(user)
+    return Response(serializer.data)
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+#특정 카테고리에 대한 pop들만 보여주기
+@api_view(['GET'])
+def view_selected_category_pop(requset,category_id):
+    pop = Pop.objects.filter(foreign_category = category_id )
+    serializer = PopSerializer(pop,many=True)
+    return Response(serializer.data)
 
-# 카테코리 수정, 삭제는 구현x
-
-
-# 팝 리스트가 주루륵 나오도록
-class PopList(generics.ListCreateAPIView):
-    queryset = Pop.objects.all()
-    serializer_class = PopSerializer
-    lookup_field = 'id'
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-# 팝 삭제
-class PopUpdateDelete(generics.RetrieveUpdateAPIView):
-    queryset = Pop.objects.all()
-    serializer_class = PopSerializer
-    lookup_field = 'id'
-
-    def delete(self, request, *args, **kwargs):
-        if self.get_object().writer == request.data.get("writer"):
-            return self.destroy(request, *args, **kwargs)
-        
-        elif self.get_object().writer == "":
-            return self.destory({"401" : "Unauthorized"}, status = 401)
-
-        else:
-            return Response({"403" : "Unauthorized"}, status = 403)
-'''
-
-'''
- contents = models.TextField(max_length = 500) # 팝 내용 (최대 500자)
-    likes = models.IntegerField(default = 0) # 좋아요 수
-    comments = models.IntegerField(default = 0) # 댓글 수       
-    writer = models.ForeignKey(User, null = True, on_delete = models.CASCADE) # 해당 팝의 작성자
-    foregin_category = models.ForeignKey(Category, null = True, on_delete = models.CASCADE) # 해당 팝의 카테고리 종류
-'''     
-
-'''
-# 메인 프로필 전달해야할 데이터: 이름(또는 닉네임), 내가 작성한 팝들 리스트로 쭈루륵, 
-# 메일 프로필의 전체 내용 : 프로필 사진, 이름, 팔로워 버튼, 팔로잉 버튼, 내가 작성한 팝 개수, 내가 작성한 팝들 주루륵~
-def main_profile(self, request, user_id):
-    user_profile = get_object_or_404(User, pk = user_id)
-    return render(request, 'main_profile.html',{'user_profile': user_profile}) # main_profile.html 파일에서 템플릿 언어로 for 문 조져서 해당 유저에 종속한 팝들 모두 띄우기
-
-
-# # # 프로필 중에서 팔로잉 버튼 누르면 팔로잉 리스트 페이지로 넘어감
-# # #def move_to_profile(self, request):
-
-
-# # # 팔로우 기능
-# # # => 팔로우 버튼을 누를 경우, follow 함수가 실행. 
-# # # 이때 팔로우를 누르는 사람은 로그인한 유저이며, user 는 follow 를 하려는 유저의 정보가 담긴 User 인스턴스 객체이다.
-# # def follow(self, request, user_id):
-# #     people = get_object_or_404(User, pk = user_id) 
-# #     if request.user in people.followers.all(): # 로그인한 유저 (request.user) 가 리스트에 있는 경우 리스트에서 제거 => 언팔로우 기능
-# #         people.followers.remove(request.user) # user 를 언팔로우 하기
-# #     else:  # 리스트에 없는 경우 리스트에 추가 => 팔로우 기능
-# #         people.followers.add(request.user) # user 롤 팔로우 하기
+#좋아요 버튼 (클릭시 likes_count 1증가)
+@api_view(['POST'])
+def like(request,pop_id):
+    pop = get_object_or_404(Pop,pk=pop_id)
     
-    # return redirect('accounts:people', people.u)
-
-# path('<int:user_id>/follow/', views.follow, name='follow'),
-'''
-
-# # '''
-# # # 리스트 페이지에 팔로우한 사람에 대한 게시글만 보이게 하기
-# # @login_required
-# # def list(request):
-# #     #posts = Post.objects.order_by('-id').all()
-    
-# #     # 1. 내가 follow하고 있는 사람들의 리스트
-# #     followings = request.user.followings.all()
-# #     # 2. follow하고 있는 사람들이 작성한 Posts만 뽑아옴.
-# #     posts = Post.objects.filter(user__in=followings).order_by('id')
-# #     comment_form = CommentForm()
-    
-# #     return render(request, 'posts/list.html', {'posts':posts, 'comment_form':comment_form})
-# # '''
-
-
-'''
-# 프로필에서 내가 작성한 팝들에 대한 리스트 중에 특정 팝을 눌렀을 때, 해당 팝에 종속한 댓글들을 모두 보여줌
-def pop_pressed(self, request, pop_id):
-    pop_info = get_object_or_404(Pop, pk = pop_id)
-    return render(request, 'pop_info.html', {'pop_info' : pop_info}) # pop_info.html 파일에서 템플리 언어로 for문 돌려서 댓글 모두 띄우기
-'''
+    if pop.user_who_like.filter(pk=request.user.pk).exists():
+       pop.user_who_like.remove(request.user) #이미팔로우 상태면 언팔
+       pop.likes_count -= 1
+    else:
+        pop.user_who_like.add(request.user) #아니면 팔로우
+        pop.likes_count += 1
+    return Response(status = 200)

@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -91,7 +91,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -159,13 +159,36 @@ USE_I18N = True
 
 USE_TZ = True
 
+STATIC_URL = '/static/'
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
+#  static 파일들이 위치한 경로
+# STATICFILES_DIRS = [
+#     #BASE_DIR / 'static',
+#     os.path.join(BASE_DIR, 'profiles' , 'static'),
+# ]
 
-STATIC_URL = 'static/'
+# STATIC_ROOT = os.path.join('staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 사용자가 자신의 프로필 사진을 업로드할 수 있도록 만들 것이기 때문에 이는 media file에 해당한다.
+# media file을 저장하기 위해서는 이 파일이 어떤 url을 타고 들어와 어디에 모일지 지정해주어야 한다. 이를 settings.py와 urls.py에서 설정한다.
+# 이미지 등의 미디어 파일을 저장할 경로를 settings.py에 지정한다.
+
+MEDIA_URL = '/media/' 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # 이렇게 MEDIA_ROOT를 지정하면 미디어 파일이 저장되는 경로가 <BASE_DIR>/media/가 된다.
+
+#MEDIA_ROOT = os.path.join(BASE_DIR, MEDIA_URL)
+
+# # Static files (CSS, JavaScript, Images)
+# # https://docs.djangoproject.com/en/4.0/howto/static-files/
+
+# STATIC_URL = 'static/'
+
+# # Default primary key field type
+# # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
+
+# DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
