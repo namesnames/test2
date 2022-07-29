@@ -97,7 +97,7 @@ urlpatterns = [
     path('view_fitme_more',profiles_views.view_fitme_more), #나에게 맞는 팝 더보기 버튼
     path('view_all_category',profiles_views.CateList.as_view()), #있는 카테고리 전부 불러오기(회원가입시)
     path('created_at_list/<int:pk>', profiles_views.created_at_list.as_view()), # 내 보관함 중 특정 카테고리 pop들을 생성 순(최신 순)으로 정렬
-    path('delete_locker_category/<int:category_id>',profiles_views.cate_delete.as_view()),
+    # path('delete_locker_category/<int:category_id>',profiles_views.cate_delete.as_view()),
 
 
 ]
