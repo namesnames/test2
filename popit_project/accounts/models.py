@@ -80,7 +80,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     re_password = models.CharField(default = "비밀번호 재확인", max_length = 12)
     alarm = models.BooleanField(default = True) # 알람 디폴트 값 = ON
     is_staff = models.BooleanField(default=False)
-    followers = models.ManyToManyField('self',symmetrical=False,related_name='followings')
+    followers = models.ManyToManyField('self',symmetrical=False,related_name='followings',blank=True)
     nickname = models.CharField(max_length = 40, blank = True) 
     profile_image = models.ImageField(blank = True, null = True, upload_to = 'uploads')
     category_list = models.ManyToManyField(Category,default=True)

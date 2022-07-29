@@ -1,5 +1,7 @@
 import base64
 import re
+# from socketserver import UnixStreamServer
+from unicodedata import category
 from django.dispatch import receiver
 from django.http import JsonResponse
 from django.shortcuts import get_list_or_404, get_object_or_404, render
@@ -12,7 +14,7 @@ from requests import delete
 from .models import Pop, Comment
 from accounts.models import User,Category
 from rest_framework import generics
-from .serializers import FollowUserSerializer, PopSerializer, CommentSerializer, CategoryListSerializer
+from .serializers import CateSerializer, FollowUserSerializer, PopSerializer, CommentSerializer, CategoryListSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
@@ -53,15 +55,15 @@ def pop_list_user(request, user_id):
 
 
 # 특정 유저에 종속하며, 특정 카테고리에 속하는 팝 생성하기    
-@api_view(['POST'])
-def create_pop_user_category(request, user_id, category_id):
-    if request.method == 'POST':
-        my_user = get_object_or_404(User, pk = user_id)
-        my_category = get_object_or_404(Category, pk = category_id)
-        serializer = PopSerializer(data = request.data)
-        if serializer.is_valid(raise_exception = True):
-            serializer.save(contents = request.data['contents'], foregin_category = my_category, writer = my_user)
-            return Response(serializer.data, status = status.HTTP_200_OK)
+# @api_view(['POST'])
+# def create_pop_user_category(request, user_id, category_id):
+#     if request.method == 'POST':
+#         my_user = get_object_or_404(User, pk = user_id)
+#         my_category = get_object_or_404(Category, pk = category_id)
+#         serializer = PopSerializer(data = request.data)
+#         if serializer.is_valid(raise_exception = True):
+#             serializer.save(contents = request.data['contents'], foregin_category = my_category, writer = my_user)
+#             return Response(serializer.data, status = status.HTTP_200_OK)
         
 @api_view(['POST'])
 def create_pop_user_category(request,category_id):
@@ -70,7 +72,7 @@ def create_pop_user_category(request,category_id):
         my_category = get_object_or_404(Category, pk = category_id)
         serializer = PopSerializer(data = request.data)
         if serializer.is_valid(raise_exception = True):
-            serializer.save(contents = request.data['contents'], foregin_category = my_category, writer = my_user)
+            serializer.save(contents = request.data['contents'], foreign_category = my_category, writer = my_user)
             return Response(serializer.data, status = status.HTTP_200_OK)
 
 
@@ -137,7 +139,7 @@ def comment_create(request, pop_id):
     if request.method == 'POST':
         serializer = CommentSerializer(data = request.data)
         if serializer.is_valid(raise_exception = True):
-            serializer.save(comments = request.data['comments'], foregin_pop = pop) # 해당 특정 팝에다 댓글쓰기
+            serializer.save(comments = request.data['comments'], foregin_pop = pop,foregin_user=request.user) # 해당 특정 팝에다 댓글쓰기
             return Response(serializer.data , status = status.HTTP_201_CREATED)
 
 
@@ -162,31 +164,28 @@ def comment_detail(request, comment_id):
             serializer.save()
             return Response(serializer.data, status = status.HTTP_202_ACCEPTED)
 
+# 본인 프로필 띄우기 및 수정
+@api_view(['GET', 'PUT'])
+def my_profile(request):
+    if request.user.is_authenticated:
+        if request.method == 'GET':
+            return Response({'nickname' : request.user.nickname}, status = status.HTTP_200_OK)
+        elif request.method == 'PUT':
+            # serializer = UserSerializer(request.user, data = request.data, login_id = request.user.login_id, email = request.user.email, followers = request.user.followers)
+            user = get_object_or_404(User, pk = request.user.id)
+            user.nickname = request.data['nickname']
+            user.profile_image = request.data['profile_image']
+            user.save()
+            return Response({"complete" : "프로필 수정 성공"}, status = status.HTTP_200_OK)
 
-# 특정 유저에 대한 프로필을 띄우기, 생성하기, 수정하기
-# @api_view(['GET', 'POST','PUT'])
-# def user_profile(request, user_id):
-#     my_user = get_object_or_404(User, pk = user_id)
 
-#     if request.method == 'GET': # 프로필 띄우기        
-#         profile = get_object_or_404(Profile, user = my_user)
-#         serializer = ProfileSerializer(profile)
-#         return Response(serializer.data, status = status.HTTP_200_OK)
-    
-#     elif request.method == 'POST': # 프로필 생성하기
-#         serializer = ProfileSerializer(data = request.data, user = my_user)
-#         print(serializer)
-#         if serializer.is_valid(raise_exception = True):
-#             serializer.save(user = my_user, nickname = request.data['nickname'], profile_image = request.data['profile_image'])
-#             return Response(serializer.data, status = status.HTTP_201_CREATED)
+# 타인의 프로필 띄우기
+@api_view(['GET'])
+def other_profile(request, user_id):
+    user = get_object_or_404(User, pk = user_id)
+    if request.method == 'GET':
+        return Response({'nickname' : user.nickname}, status= status.HTTP_200_OK)
 
-#     elif request.method == 'PUT': # 프로필 수정하기
-#         # my_user = request.user
-#         profile = get_object_or_404(Profile, user = my_user)
-#         serializer = ProfileSerializer(profile, data = request.data)
-#         if serializer.is_valid(raise_exception = True):
-#             serializer.save()
-#             return Response(serializer.data, status = status.HTTP_200_OK)
 
 '''
     elif request.method == "PUT" :  # 댓글 수정
@@ -281,7 +280,7 @@ def set_category(request):
     for data in request.data:  #리스트 형태로 온 json데이터 순회
         category_id = data['category_id']
         selected_category = get_object_or_404(Category,pk=category_id)
-        user.category_list.add(selected_category.pk)  #현재 사용자 객체의 category_list에 카테고리객체의 id값 추가
+        user.category_list.add(selected_category)  #현재 사용자 객체의 category_list에 카테고리객체의 id값 추가
 
     return Response(status=200)
 
@@ -299,7 +298,7 @@ def view_selected_category_pop(requset,category_id):
     serializer = PopSerializer(pop,many=True)
     return Response(serializer.data)
 
-#좋아요 버튼 (클릭시 likes_count 1증가)
+#팝 게시글 좋아요 버튼 (클릭시 likes_count 1증가)
 @api_view(['POST'])
 def like(request,pop_id):
     pop = get_object_or_404(Pop,pk=pop_id)
@@ -307,7 +306,209 @@ def like(request,pop_id):
     if pop.user_who_like.filter(pk=request.user.pk).exists():
        pop.user_who_like.remove(request.user) #이미팔로우 상태면 언팔
        pop.likes_count -= 1
+       pop.save()
     else:
         pop.user_who_like.add(request.user) #아니면 팔로우
         pop.likes_count += 1
-    return Response(status = 200)
+        pop.save()
+    serializer = PopSerializer(pop)
+    return Response(serializer.data)
+
+#댓글 게시글 좋아요 버튼 (클릭시 likes_count 1증가)
+@api_view(['POST'])
+def like(request,comment_id):
+    comment = get_object_or_404(Comment,pk=comment_id)
+    
+    if comment.user_who_like.filter(pk=request.user.pk).exists():
+       comment.user_who_like.remove(request.user) #이미팔로우 상태면 언팔
+       comment.likes_count -= 1
+       comment.save()
+    else:
+        comment.user_who_like.add(request.user) #아니면 팔로우
+        comment.likes_count += 1
+        comment.save()
+    serializer = PopSerializer(comment)
+    return Response(serializer.data)
+
+#저장버튼
+@api_view(['POST'])
+def save(request,pop_id):
+    saved_pop = get_object_or_404(Pop,pk=pop_id)
+    
+    if saved_pop.save_user.filter(pk=request.user.pk).exists():
+        saved_pop.save_user.remove(request.user)
+        saved_pop.save()
+    else:
+        saved_pop.save_user.add(request.user)
+        saved_pop.save()
+    serializer = PopSerializer(saved_pop)
+    return Response(serializer.data)
+
+#보관함에서 내가 저장한 pop만 보기(특정 카테고리의)
+@api_view(['GET'])
+def view_saved_pop(request,category_id):
+    saved_pop = Pop.objects.filter(foreign_category = category_id,save_user = request.user )
+    serializer = PopSerializer(saved_pop,many=True)
+    return Response(serializer.data)
+
+# 현재 로그인 상태인 유저에 종속한 팝 리스트를 총 좋아요 수를 기준으로 정렬 
+class likecount_list(generics.ListCreateAPIView):
+    queryset = Pop.objects.all().order_by('-likes_count')
+    serializer_class = PopSerializer
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        
+        return self.list(request, *args, *kwargs)
+    
+    def list(self, request, *args, **kwargs):
+       
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(foreign_category = self.kwargs['pk'], save_user = self.request.user)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+# class likecount_list(generics.ListCreateAPIView):
+#     queryset = Pop.objects.all().order_by('-likes_count')
+# serializer_class = PopSerializer
+# lookup_field = 'id'
+
+# def get(self, request, cate):
+#     return self.list(request, cate)
+
+# def list(self, request, cate):
+    
+#     queryset = self.filter_queryset(self.get_queryset())
+#     queryset = queryset.filter(foreign_category = cate, save_user = self.request.user)
+
+#     page = self.paginate_queryset(queryset)
+#     if page is not None:
+#         serializer = self.get_serializer(page, many=True)
+#         return self.get_paginated_response(serializer.data)
+
+#     serializer = self.get_serializer(queryset, many=True)
+#     return Response(serializer.data)
+    
+# 현재 로그인 상태인 유저에 종속한 팝 리스트를 총 댓글 수를 기준으로 정렬 
+class commentcount_list(generics.ListCreateAPIView):
+    queryset = Pop.objects.all().order_by('-comments_count')
+    serializer_class = PopSerializer
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+       
+        return self.list(request, *args, *kwargs)
+    
+    def list(self, request, *args, **kwargs):
+       
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(foreign_category = self.kwargs['pk'], save_user = self.request.user)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+# 지금 뜨는 팝 더보기 버튼 10개 더 보여줌(pop들 중에서 카테고리 상관없이 좋아요 많은 순으로 정렬  )
+class view_nowup_more(generics.ListCreateAPIView):
+    queryset = Pop.objects.all().order_by('-likes_count')[:5]
+    serializer_class = PopSerializer
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, *kwargs)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        # queryset = queryset.filter(foreign_category = self.kwargs['pk'], save_user = self.request.user)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+
+# 나에게 맞는 팝 더보기 버튼 (내가 고른 카테고리의 pop들 10개 더 보여줌)    
+@api_view(['GET'])
+def view_fitme_more(request):
+    # user = User.objects.get(pk = request.user.pk)
+    # user = get_object_or_404(User,pk=request.user.pk)
+    cateone = request.user.category_list.all()  #다대다 관계인 followings는 쿼리셋이라서 다 가져온다음에 저렇게 접근하면된다고함
+    saved_pop = Pop.objects.filter(foreign_category = cateone[0])[:5]
+    serializer = PopSerializer(saved_pop,many=True)
+    return Response(serializer.data)
+
+#있는 카테고리 전부 불러오기(회원가입시)
+class CateList(generics.ListCreateAPIView):
+    queryset = Category.objects.all() #객체를 반환하는데 사용
+    serializer_class = CateSerializer
+    lookup_field = 'id'
+    
+# 현재 로그인 상태인 유저에 종속한 팝 리스트를 총 최신생성 기긴을 기준으로 정렬 
+class created_at_list(generics.ListCreateAPIView):
+    queryset = Pop.objects.all().order_by('-created_at')
+    serializer_class = PopSerializer
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(foreign_category = self.kwargs['pk'], save_user = self.request.user)
+       
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+# # #내 보관함에서 카테고리 삭제 버튼
+# class cate_delete(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = Pop.objects.all()
+#     serializer_class =  PopSerializer
+    
+#     def put(self, request, category_id):
+#         c = Pop.objects.filter(pk = category_id,save_user = request.user)
+        
+#         for i in c:
+#             i.save_user.remove(request.user)
+#             i.save()
+            
+#         return Response(status=200)
+        # partial = kwargs.pop('partial', False)
+        # instance = self.get_object()
+        # serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        # serializer.is_valid(raise_exception=True)
+        # self.perform_update(serializer)
+
+        # if getattr(instance, '_prefetched_objects_cache', None):
+        #     # If 'prefetch_related' has been applied to a queryset, we need to
+        #     # forcibly invalidate the prefetch cache on the instance.
+        #     instance._prefetched_objects_cache = {}
+
+        return Response(status=200)
+
+   
+    
+    
+    
+    # 아니면 해당 유저가 저장한 팝들을 (쿼리셋 리스트) 불러오고 해당 카테고리의 필드만 수정
+    
+
+    
+  
+    

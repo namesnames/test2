@@ -72,4 +72,9 @@ class CategoryListSerializer(serializers.ModelSerializer):
             'is_staff' : {'write_only' : True},
             
         }  
-
+class CateSerializer(serializers.ModelSerializer):
+    # User = UserSerialzer
+    class Meta:
+        model = Category
+        fields = '__all__'
+        read_only_fields = ('id',)

@@ -71,7 +71,10 @@ class Pop(models.Model):
     comments_count = models.IntegerField(null = True, default = 0) # 댓글 수       
     writer = models.ForeignKey(User, null = True, on_delete = models.CASCADE) # 해당 팝의 작성자
     foreign_category = models.ForeignKey(Category, null = True, on_delete = models.CASCADE) # 해당 팝의 카테고리 종류
-    user_who_like = models.ManyToManyField(User,related_name='user_who_like')
+    user_who_like = models.ManyToManyField(User,related_name='user_who_like',blank=True)
+    pop_image = models.ImageField(blank = True, null = True, upload_to = 'popimg')
+    save_user = models.ManyToManyField(User,related_name='save_pop',blank=True)
+    created_at = models.DateTimeField(auto_now_add = True) # 생성 날짜
   
 # class PopLikeUser(models.Model):
 #     user_who_like = models.ManyToManyField(User)
@@ -113,6 +116,7 @@ class Comment(models.Model):
     comments = models.CharField(null = True, max_length = 200)
     foregin_pop = models.ForeignKey(Pop, null = True, on_delete = models.CASCADE) # 어느 팝에 종속한 댓글인지
     foregin_user = models.ForeignKey(User, null = True, on_delete = models.CASCADE)
+    user_who_commentlike = models.ManyToManyField(User,related_name='user_who_commentlike',blank=True)
     # on_delete => 참조 객체인 팝이 삭제되면 댓글도 같이 삭제
 
     def __str__(self):

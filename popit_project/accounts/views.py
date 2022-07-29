@@ -12,29 +12,30 @@ from django.contrib.auth import authenticate, login, logout
 # 회원가입
 class RegisterAPIView(APIView):
     def post(self, request):
+        print(request.data)
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             # jwt token 접근해주기
-            token = TokenObtainPairSerializer.get_token(user)
-            refresh_token = str(token)
-            access_token = str(token.access_token)
+            # token = TokenObtainPairSerializer.get_token(user)
+            # refresh_token = str(token)
+            # access_token = str(token.access_token)
             res = Response(
                 {
                     "user": serializer.data,
                     "message": "register successs",
-                    "token": {
-                        "access": access_token,
-                        "refresh": refresh_token,
-                    },
+                    # "token": {
+                    #     "access": access_token,
+                    #     "refresh": refresh_token,
+                    # },
 
                 },
                 status=status.HTTP_200_OK,
         
             )
             #쿠키에 넣어주기...아직 어떤식으로 해야될지 모르겠는데 이렇게 설정만 우선 해주었다. 
-            res.set_cookie("access", access_token, httponly=True) # 유저가 로그인에 성공했을때, 해당 유저를 로그인 기간동안 인증하는 토큰을 cookie에 저장해야 할 경우, HttpResponse 또는 JsonResponse 에 장고에서 제공하는 set_cookie 메소드를 사용하여 토큰을 발행할 수 있다.
-            res.set_cookie("refresh", refresh_token, httponly=True)
+            # res.set_cookie("access", access_token, httponly=True) # 유저가 로그인에 성공했을때, 해당 유저를 로그인 기간동안 인증하는 토큰을 cookie에 저장해야 할 경우, HttpResponse 또는 JsonResponse 에 장고에서 제공하는 set_cookie 메소드를 사용하여 토큰을 발행할 수 있다.
+            # res.set_cookie("refresh", refresh_token, httponly=True)
             return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -50,17 +51,17 @@ class AuthView(APIView):
         if user is not None:
             serializer = UserSerializer(user)
             #token = Token.objects.create(user = user.id, token = access_token)
-            token = TokenObtainPairSerializer.get_token(user)
-            refresh_token = str(token)
-            access_token = str(token.access_token)  
+            # token = TokenObtainPairSerializer.get_token(user)
+            # refresh_token = str(token)
+            # access_token = str(token.access_token)  
             res = Response(
                 {
                     "user": serializer.data,
                     "message": "login success",
-                    "token": {
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                    },
+                    # "token": {
+                    #     "access_token": access_token,
+                    #     "refresh_token": refresh_token,
+                    # },
                 },
                 status=status.HTTP_200_OK,
             )
@@ -79,6 +80,6 @@ class logout(APIView):
         클라이언트 refreshtoken 쿠키를 삭제함으로 로그아웃처리
         """
         response = Response({"message": "Logout success"}, status=status.HTTP_202_ACCEPTED)
-        response.delete_cookie('refresh_token')
+        # response.delete_cookie('refresh_token')
         #response.delete_cookie('access_token')
         return response
